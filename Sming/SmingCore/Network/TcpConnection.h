@@ -201,6 +201,14 @@ public:
 	void freeSslFingerprints();
 
 	SSL* getSsl();
+
+	/**
+	* @brief	Renegotaite TLS on an already open insecure TCP connection.
+	*
+	* @note	Required by clients that need to upgrade an existing insecure TCP
+	* 			connection to a TLS secured one.  (ex. SMTP STARTTLS)
+	*/
+	bool secureConnection(void);
 #endif
 
 protected:

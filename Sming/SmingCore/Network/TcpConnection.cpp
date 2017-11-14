@@ -842,4 +842,89 @@ void TcpConnection::freeSslFingerprints()
 SSL* TcpConnection::getSsl() {
 	return ssl;
 }
+
+bool TcpConnection::secureConnection(void) {
+	TcpConnection* con = this;
+	con->useSsl = true;
+
+	debugf("secureConnection: useSSL: %d", con->useSsl);
+
+	if(con->useSsl) {
+		int clientfd = axl_append(tcp);
+		if(clientfd == -1) {
+			debugf("SSL: Unable to add LWIP tcp -> clientfd mapping");
+				return false;
+		} else {
+			uint32_t sslOptions = con->sslOptions;
+#ifdef SSL_DEBUG
+			sslOptions |= SSL_DISPLAY_STATES | SSL_DISPLAY_BYTES | SSL_DISPLAY_CERTS;
+			debugf("SSL: Show debug data ...");
+#endif
+			debugf("SSL: Starting connection...");
+#ifndef SSL_SLOW_CONNECT
+			debugf("SSL: Switching to 160 MHz");
+			System.setCpuFrequency(eCF_160MHz); // For shorter waiting time, more power consumption.
+#endif
+			debugf("SSL: handshake start (%d ms)", millis());
+
+			if(con->ssl != NULL) {
+			ssl_free(con->ssl);
+			}
+
+			con->sslContext = ssl_ctx_new(SSL_CONNECT_IN_PARTS | sslOptions, 1);
+
+			if (con->clientKeyCert.keyLength && con->clientKeyCert.certificateLength) {
+				// if we have client certificate -> try to use it.
+				if (ssl_obj_memory_load(con->sslContext, SSL_OBJ_RSA_KEY,
+						con->clientKeyCert.key, con->clientKeyCert.keyLength,
+						con->clientKeyCert.keyPassword) != SSL_OK) {
+					debugf("SSL: Unable to load client private key");
+				} else if (ssl_obj_memory_load(con->sslContext, SSL_OBJ_X509_CERT,
+						con->clientKeyCert.certificate,
+						con->clientKeyCert.certificateLength, NULL) != SSL_OK) {
+					debugf("SSL: Unable to load client certificate");
+				}
+
+				if(con->freeClientKeyCert) {
+					con->freeSslClientKeyCert();
+				}
+			}
+
+			debugf("SSL: Session Id Length: %d", (con->sslSessionId != NULL ? con->sslSessionId->length: 0));
+			if(con->sslSessionId != NULL &&  con->sslSessionId->length > 0) {
+				debugf("-----BEGIN SSL SESSION PARAMETERS-----");
+				for (int i = 0; i <  con->sslSessionId->length; i++) {
+					m_printf("%02x", con->sslSessionId->value[i]);
+				}
+
+				debugf("\n-----END SSL SESSION PARAMETERS-----");
+			}
+
+			con->ssl = ssl_client_new(con->sslContext, clientfd,
+									 	 (con->sslSessionId != NULL ? con->sslSessionId->value : NULL),
+										 (con->sslSessionId != NULL ? con->sslSessionId->length: 0),
+										 con->sslExtension
+									 );
+			if(ssl_handshake_status(con->ssl)!=SSL_OK) {
+				debugf("SSL: handshake is in progress...");
+				return true;
+			}
+
+#ifndef SSL_SLOW_CONNECT
+			debugf("SSL: Switching back 80 MHz");
+			System.setCpuFrequency(eCF_80MHz);
+#endif
+			if(con->sslSessionId) {
+				if(con->sslSessionId->value == NULL) {
+					con->sslSessionId->value = new uint8_t[SSL_SESSION_ID_SIZE];
+				}
+				memcpy((void *)con->sslSessionId->value, (void *)con->ssl->session_id, con->ssl->sess_id_size);
+				con->sslSessionId->length = con->ssl->sess_id_size;
+			}
+
+		}
+	}
+
+	return true;
+}
 #endif
