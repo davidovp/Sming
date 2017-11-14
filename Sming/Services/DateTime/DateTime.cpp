@@ -190,7 +190,7 @@ String DateTime::toRFC822(double timezone)
 		return nullptr;
 	}
 	int tz_int = trunc(timezone);
-	int tz_dec = 0;	// @TODO Need to fix for timezones w/ partial hour offsets
+	int tz_dec = trunc((timezone-tz_int)*100);
 	sprintf(buf, "%s, %02d %s %04d %02d:%02d:%02d %+03d%02d",
 			day_name,
 			Day,
