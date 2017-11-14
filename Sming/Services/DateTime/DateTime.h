@@ -91,6 +91,14 @@ public:
     */
 	operator time_t() { return toUnixTime(); }
 
+	/** @brief Names of days of the week
+	 */
+	static const char* dayNames[];
+
+	/** @brief Names of months of the year
+	 */
+	static const char* monthNames[];
+
     /** @brief  Set time using Unix time
      *  @param  time Unix time to set object time to
      */
@@ -140,6 +148,12 @@ public:
      */
 	String toFullDateTimeString();
 	String toISO8601();
+
+	/** @brief	Get RFC822 (RFC1123 & RFC2822) compliant date & time
+	 *  @retval	String in the format 'Thu, 26 Oct 2017 01:10:30 -0500'
+	 *  @note	Used throughout the Internet (SMTP,HTTP,etc)
+	 */
+	String toRFC822(double timezone = 0.0);
 
     /** @brief  Add time to date time object
      *  @param  add Quantity of milliseconds to add to object

@@ -17,6 +17,30 @@
 #define LEAP_YEAR(_year) ((_year%4)==0)
 static  int8_t monthDays[]={31,28,31,30,31,30,31,31,30,31,30,31};
 
+const char* DateTime::dayNames[] = {
+		"Sunday",
+		"Monday",
+		"Tuesday",
+		"Wednesday",
+		"Thursday",
+		"Friday",
+		"Saturday"
+};
+
+const char* DateTime::monthNames[] = {
+		"January",
+		"February",
+		"March",
+		"April",
+		"May",
+		"June",
+		"July",
+		"August",
+		"September",
+		"October",
+		"November",
+		"December"
+};
 
 //******************************************************************************
 //* DateTime Public Methods
@@ -145,6 +169,42 @@ String DateTime::toISO8601()
 {
 	char buf[21];
 	sprintf(buf, "%02d-%02d-%02dT%02d:%02d:%02dZ",Year,Month+1,Day,Hour,Minute,Second);
+	return String(buf);
+}
+
+String DateTime::toRFC822(double timezone)
+{
+	char buf[31];
+	char *day_name = new char[4];
+	if (day_name) {
+		memcpy(day_name, dayNames[DayofWeek], 3);
+		day_name[3] = '\0';
+	} else {
+		return nullptr;
+	}
+	char *month_name = new char[4];
+	if (month_name) {
+		memcpy(month_name, monthNames[Month], 3);
+		month_name[3] = '\0';
+	} else {
+		return nullptr;
+	}
+	int tz_int = trunc(timezone);
+	int tz_dec = 0;	// @TODO Need to fix for timezones w/ partial hour offsets
+	sprintf(buf, "%s, %02d %s %04d %02d:%02d:%02d %+03d%02d",
+			day_name,
+			Day,
+			month_name,
+			Year,
+			Hour,
+			Minute,
+			Second,
+			tz_int,
+			tz_dec);
+
+	delete day_name;
+	delete month_name;
+
 	return String(buf);
 }
 
